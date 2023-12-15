@@ -8,14 +8,11 @@ const app = new Elysia()
     .get('/', () => 'A', {
         beforeHandle: [
             async function a() {
-                await delay(1)
-                return 'a'
+                await delay(100)
             }
         ],
         afterHandle: async () => {
-            await delay(1)
+            await delay(20)
         }
     })
     .listen(3000)
-
-app.handle(new Request('http://localhost/'))
