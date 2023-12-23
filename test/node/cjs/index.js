@@ -2,9 +2,9 @@ if ('Bun' in globalThis) {
   throw new Error('❌ Use Node.js to run this test!');
 }
 
-const { bearer } = require('@elysiajs/bearer');
+const { serverTiming } = require('@elysiajs/server-timing');
 
-if (typeof bearer !== 'function') {
+if (typeof serverTiming !== 'function') {
   throw new Error('❌ CommonJS Node.js failed');
 }
 

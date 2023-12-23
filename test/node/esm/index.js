@@ -2,9 +2,9 @@ if ('Bun' in globalThis) {
   throw new Error('❌ Use Node.js to run this test!');
 }
 
-import { bearer } from '@elysiajs/bearer';
+import { serverTiming } from '@elysiajs/server-timing';
 
-if (typeof bearer !== 'function') {
+if (typeof serverTiming !== 'function') {
   throw new Error('❌ ESM Node.js failed');
 }
 
