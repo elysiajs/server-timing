@@ -2,16 +2,16 @@ import {
     Elysia,
     type Context,
     type TraceEvent,
-    type TraceProcess,
-} from "elysia";
+    type TraceProcess
+} from 'elysia'
 
-type MaybePromise<T> = T | Promise<T>;
+type MaybePromise<T> = T | Promise<T>
 
 export interface ServerTimingOptions {
     /**
      * Should Elysia report data back to client via 'Server-Sent-Event'
      */
-    report?: boolean;
+    report?: boolean
     /**
      * Allow Server Timing to log specified life-cycle events
      */
@@ -21,50 +21,50 @@ export interface ServerTimingOptions {
          *
          * @default true
          */
-        request?: boolean;
+        request?: boolean
         /**
          * Capture duration from parse
          *
          * @default true
          */
-        parse?: boolean;
+        parse?: boolean
         /**
          * Capture duration from transform
          *
          * @default true
          */
-        transform?: boolean;
+        transform?: boolean
         /**
          * Capture duration from beforeHandle
          *
          * @default true
          */
-        beforeHandle?: boolean;
+        beforeHandle?: boolean
         /**
          * Capture duration from handle
          *
          * @default true
          */
-        handle?: boolean;
+        handle?: boolean
         /**
          * Capture duration from afterHandle
          *
          * @default true
          */
-        afterHandle?: boolean;
+        afterHandle?: boolean
         /**
          * Capture total duration from start to finish
          *
          * @default true
          */
-        total?: boolean;
-    };
+        total?: boolean
+    }
     /**
      * Determine whether or not Server Timing should be enabled
      *
      * @default NODE_ENV !== 'production'
      */
-    enabled?: boolean;
+    enabled?: boolean
     /**
      * A condition whether server timing should be log
      *
@@ -72,38 +72,38 @@ export interface ServerTimingOptions {
      */
     allow?:
         | MaybePromise<boolean>
-        | ((context: Omit<Context, "path">) => MaybePromise<boolean>);
+        | ((context: Omit<Context, 'path'>) => MaybePromise<boolean>)
 }
 
 const iterate = async (
     event: TraceEvent,
-    process: Promise<TraceProcess<"begin">>,
+    process: Promise<TraceProcess<'begin'>>
 ) => {
-    let label = "";
+    let label = ''
 
-    const { skip, time, end, children } = await process;
-    if (skip || !children.length) return "";
+    const { skip, time, end, children } = await process
+    if (skip || !children.length) return ''
 
     for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        const { name, time, end, skip } = await child;
+        const child = children[i]
+        const { name, time, end, skip } = await child
 
-        if (skip) continue;
+        if (skip) continue
 
-        label += `${event}.${i}.${name};dur=${(await end) - time},`;
+        label += `${event}.${i}.${name};dur=${(await end) - time},`
     }
 
-    label = `${event};dur=${(await end) - time},` + label;
+    label = `${event};dur=${(await end) - time},` + label
 
-    return label;
-};
+    return label
+}
 
 export const serverTiming = (options: ServerTimingOptions = {}) => {
-    const app = new Elysia();
+    const app = new Elysia()
 
     const {
         allow,
-        enabled = process.env.NODE_ENV !== "production",
+        enabled = process.env.NODE_ENV !== 'production',
         trace: {
             request: traceRequest = true,
             parse: traceParse = true,
@@ -111,12 +111,13 @@ export const serverTiming = (options: ServerTimingOptions = {}) => {
             beforeHandle: traceBeforeHandle = true,
             handle: traceHandle = true,
             afterHandle: traceAfterHandle = true,
-            total: traceTotal = true,
-        } = {},
-    } = options;
+            total: traceTotal = true
+        } = {}
+    } = options
 
     if (enabled) {
         app.trace(
+            { as: 'global' },
             async ({
                 request,
                 parse,
@@ -127,62 +128,62 @@ export const serverTiming = (options: ServerTimingOptions = {}) => {
                 set,
                 context,
                 context: {
-                    request: { method },
-                },
+                    request: { method }
+                }
             }) => {
-                let label = "";
+                let label = ''
 
                 const { time: requestStart } = traceTotal
                     ? await request
-                    : { time: 0 };
+                    : { time: 0 }
 
-                if (traceRequest) label += await iterate("request", request);
+                if (traceRequest) label += await iterate('request', request)
 
-                if (traceParse && method !== "GET" && method !== "HEAD")
-                    label += await iterate("parse", parse);
+                if (traceParse && method !== 'GET' && method !== 'HEAD')
+                    label += await iterate('parse', parse)
 
                 if (traceTransform)
-                    label += await iterate("transform", transform);
+                    label += await iterate('transform', transform)
 
                 if (traceBeforeHandle)
-                    label += await iterate("beforeHandle", beforeHandle);
+                    label += await iterate('beforeHandle', beforeHandle)
 
-                const { end, time, skip, name } = await handle;
-                if (!skip) label += `handle.${name};dur=${(await end) - time}`;
+                const { end, time, skip, name } = await handle
+                if (!skip) label += `handle.${name};dur=${(await end) - time}`
 
                 if (traceAfterHandle)
-                    label += await iterate("afterHandle", afterHandle);
+                    label += await iterate('afterHandle', afterHandle)
 
                 if (traceTotal) {
-                    const { end: requestEnd } = await afterHandle;
+                    const { end: requestEnd } = await afterHandle
 
-                    label += `total;dur=${(await requestEnd) - requestStart}`;
+                    label += `total;dur=${(await requestEnd) - requestStart}`
                 }
 
-                set.headers["Server-Timing"] = label;
+                set.headers['Server-Timing'] = label
 
-                let allowed = allow;
-                if (allowed instanceof Promise) allowed = await allowed;
+                let allowed = allow
+                if (allowed instanceof Promise) allowed = await allowed
 
                 // ? Must wait until request is reported
                 switch (typeof allowed) {
-                    case "boolean":
+                    case 'boolean':
                         if (allowed === false)
-                            delete set.headers["Server-Timing"];
+                            delete set.headers['Server-Timing']
 
-                        break;
+                        break
 
-                    case "function":
+                    case 'function':
                         if ((await allowed(context)) === false)
-                            delete set.headers["Server-Timing"];
+                            delete set.headers['Server-Timing']
 
-                        break;
+                        break
                 }
-            },
-        );
+            }
+        )
     }
 
-    return app;
-};
+    return app
+}
 
-export default serverTiming;
+export default serverTiming
