@@ -53,6 +53,18 @@ export interface ServerTimingOptions {
          */
         afterHandle?: boolean
         /**
+         * Capture duration from mapResponse
+         *
+         * @default true
+         */
+        error?: boolean
+        /**
+         * Capture duration from mapResponse
+         *
+         * @default true
+         */
+        mapResponse?: boolean
+        /**
          * Capture total duration from start to finish
          *
          * @default true
@@ -75,56 +87,61 @@ export interface ServerTimingOptions {
         | ((context: Omit<Context, 'path'>) => MaybePromise<boolean>)
 }
 
-const iterate = async (
+const getLabel = (
     event: TraceEvent,
-    process: Promise<TraceProcess<'begin'>>
+    listener: (
+        callback: (process: TraceProcess<'begin', true>) => unknown
+    ) => unknown,
+    write: (value: string) => void
 ) => {
-    let label = ''
+    listener(async ({ begin, onStop, onEvent, total }) => {
+        let label = ''
 
-    const { skip, time, end, children } = await process
-    if (skip || !children.length) return ''
+        if (total === 0) return
 
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i]
-        const { name, time, end, skip } = await child
+        onEvent(({ begin, end, name, index, onStop }) => {
+            onStop((end) => {
+                label += `${event}.${index}.${name};dur=${end - begin},`
+            })
+        })
 
-        if (skip) continue
+        onStop((end) => {
+            label += `${event};dur=${end - begin},`
 
-        label += `${event}.${i}.${name};dur=${(await end) - time},`
-    }
-
-    label = `${event};dur=${(await end) - time},` + label
-
-    return label
+            write(label)
+        })
+    })
 }
 
-export const serverTiming = (options: ServerTimingOptions = {}) => {
+export const serverTiming = ({
+    allow,
+    enabled = process.env.NODE_ENV !== 'production',
+    trace: {
+        request: traceRequest = true,
+        parse: traceParse = true,
+        transform: traceTransform = true,
+        beforeHandle: traceBeforeHandle = true,
+        handle: traceHandle = true,
+        afterHandle: traceAfterHandle = true,
+        error: traceError = true,
+        mapResponse: traceMapResponse = true,
+        total: traceTotal = true
+    } = {}
+}: ServerTimingOptions = {}) => {
     const app = new Elysia()
-
-    const {
-        allow,
-        enabled = process.env.NODE_ENV !== 'production',
-        trace: {
-            request: traceRequest = true,
-            parse: traceParse = true,
-            transform: traceTransform = true,
-            beforeHandle: traceBeforeHandle = true,
-            handle: traceHandle = true,
-            afterHandle: traceAfterHandle = true,
-            total: traceTotal = true
-        } = {}
-    } = options
 
     if (enabled) {
         app.trace(
             { as: 'global' },
             async ({
-                request,
-                parse,
-                transform,
-                beforeHandle,
-                handle,
-                afterHandle,
+                onRequest,
+                onParse,
+                onTransform,
+                onBeforeHandle,
+                onHandle,
+                onAfterHandle,
+                onMapResponse,
+                onError,
                 set,
                 context,
                 context: {
@@ -133,34 +150,32 @@ export const serverTiming = (options: ServerTimingOptions = {}) => {
             }) => {
                 let label = ''
 
-                const { time: requestStart } = traceTotal
-                    ? await request
-                    : { time: 0 }
-
-                if (traceRequest) label += await iterate('request', request)
-
-                if (traceParse && method !== 'GET' && method !== 'HEAD')
-                    label += await iterate('parse', parse)
-
-                if (traceTransform)
-                    label += await iterate('transform', transform)
-
-                if (traceBeforeHandle)
-                    label += await iterate('beforeHandle', beforeHandle)
-
-                const { end, time, skip, name } = await handle
-                if (!skip) label += `handle.${name};dur=${(await end) - time}`
-
-                if (traceAfterHandle)
-                    label += await iterate('afterHandle', afterHandle)
-
-                if (traceTotal) {
-                    const { end: requestEnd } = await afterHandle
-
-                    label += `total;dur=${(await requestEnd) - requestStart}`
+                const write = (nextValue: string) => {
+                    label += nextValue
                 }
 
-                set.headers['Server-Timing'] = label
+                if (traceRequest) getLabel('request', onRequest, write)
+                if (traceParse) getLabel('parse', onParse, write)
+                if (traceTransform) getLabel('transform', onTransform, write)
+                if (traceBeforeHandle)
+                    getLabel('beforeHandle', onBeforeHandle, write)
+                if (traceAfterHandle)
+                    getLabel('afterHandle', onAfterHandle, write)
+                if (traceError) getLabel('error', onError, write)
+                if (traceMapResponse)
+                    getLabel('mapResponse', onMapResponse, write)
+
+                onHandle(({ begin, end, name, onStop }) => {
+                    onStop((end) => {
+                        label += `handle.${name};dur=${end - begin}`
+                    })
+                })
+
+                onMapResponse(({ onStop }) => {
+                    onStop(() => {
+                        set.headers['Server-Timing'] = label
+                    })
+                })
 
                 let allowed = allow
                 if (allowed instanceof Promise) allowed = await allowed
