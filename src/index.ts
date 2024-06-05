@@ -99,14 +99,14 @@ const getLabel = (
 
         if (total === 0) return
 
-        onEvent(({ begin, end, name, index, onStop }) => {
-            onStop((end) => {
-                label += `${event}.${index}.${name};dur=${end - begin},`
+        onEvent(({ name, index, onStop }) => {
+            onStop(({ elapsed }) => {
+                label += `${event}.${index}.${name};dur=${elapsed},`
             })
         })
 
-        onStop((end) => {
-            label += `${event};dur=${end - begin},`
+        onStop(({ elapsed }) => {
+            label += `${event};dur=${elapsed},`
 
             write(label)
         })
@@ -165,9 +165,9 @@ export const serverTiming = ({
                 if (traceMapResponse)
                     getLabel('mapResponse', onMapResponse, write)
 
-                onHandle(({ begin, end, name, onStop }) => {
-                    onStop((end) => {
-                        label += `handle.${name};dur=${end - begin}`
+                onHandle(({ name, onStop }) => {
+                    onStop(({ elapsed }) => {
+                        label += `handle.${name};dur=${elapsed}`
                     })
                 })
 
