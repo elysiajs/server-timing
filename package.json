@@ -22,12 +22,12 @@
         "elysia",
         "server-timing"
     ],
-    "homepage": "https://github.com/elysiajs/elysia-server-timing",
+    "homepage": "https://github.com/elysiajs/server-timing",
     "repository": {
         "type": "git",
-        "url": "https://github.com/elysiajs/elysia-server-timing"
+        "url": "https://github.com/elysiajs/server-timing"
     },
-    "bugs": "https://github.com/elysiajs/elysia-server-timing/issues",
+    "bugs": "https://github.com/elysiajs/server-timing/issues",
     "license": "MIT",
     "scripts": {
         "dev": "bun run --watch example/index.ts",
