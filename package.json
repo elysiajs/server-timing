@@ -40,7 +40,7 @@
         "elysia": ">= 1.2.0"
     },
     "devDependencies": {
-        "@types/bun": "1.1.14",
+        "@types/bun": "1.2.2",
         "elysia": ">= 1.2.0",
         "eslint": "9.6.0",
         "tsup": "^8.1.0",
