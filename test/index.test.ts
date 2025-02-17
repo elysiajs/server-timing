@@ -8,7 +8,7 @@ const req = (path: string) => new Request(`http://localhost:8080${path}`)
 const delay = (time = 1000) => new Promise((r) => setTimeout(r, time))
 
 const sampleResponse =
-    'request;dur=59.336415999999986,request.0.init;dur=57.475874999999974,beforeHandle;dur=363.2004999999999,beforeHandle.0.a;dur=107.58562500000005,beforeHandle.1.b;dur=253.637875,handle.demo;dur=0.17795799999998962afterHandle;dur=54.278625000000034,afterHandle.0.afterHandle;dur=54.18974999999989,total;dur=479.14762500000006'
+    'request;dur=59.336415999999986,request.0.init;dur=57.475874999999974,beforeHandle;dur=363.2004999999999,beforeHandle.0.a;dur=107.58562500000005,beforeHandle.1.b;dur=253.637875,handle.demo;dur=0.17795799999998962,afterHandle;dur=54.278625000000034,afterHandle.0.afterHandle;dur=54.18974999999989,total;dur=479.14762500000006'
 
 describe('Server Timing', () => {
     it('report event to Server-Timing', async () => {
@@ -53,6 +53,50 @@ describe('Server Timing', () => {
         expect(timing).toContain('afterHandle.0.afterHandle;dur=')
 
         expect(timing).toContain('total;dur=')
+    })
+
+    it('verifies handler metric formatting', async () => {
+        const app = new Elysia()
+            .use(serverTiming())
+            .get('/', function demo() {
+                return 'Server Timing'
+            })
+
+        const res = await app.handle(req('/'))
+        const timing = res.headers.get('Server-Timing')
+
+        expect(timing).not.toBeNull();
+
+        const formattedTiming = (timing!).split(',').map(part => part.split(';'));
+
+        expect(formattedTiming).toHaveLength(2);
+        expect(formattedTiming[0][0]).toBe('handle.demo');
+        expect(formattedTiming[0][1]).toMatch(/dur=\d+(\.\d+)?/);
+        expect(formattedTiming[1][0]).toBe('total');
+        expect(formattedTiming[1][1]).toMatch(/dur=\d+(\.\d+)?/);
+    })
+
+    it('verifies handler metric formatting without total', async () => {
+        const app = new Elysia()
+            .use(serverTiming({
+                trace: {
+                    total: false
+                }
+            }))
+            .get('/', function demo() {
+                return 'Server Timing'
+            })
+
+        const res = await app.handle(req('/'))
+        const timing = res.headers.get('Server-Timing')
+
+        expect(timing).not.toBeNull();
+
+        const formattedTiming = (timing!).split(',').map(part => part.split(';'));
+
+        expect(formattedTiming).toHaveLength(1);
+        expect(formattedTiming[0][0]).toBe('handle.demo');
+        expect(formattedTiming[0][1]).toMatch(/dur=\d+(\.\d+)?/);
     })
 
     it('exclude specified event', async () => {

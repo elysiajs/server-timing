@@ -174,7 +174,7 @@ export const serverTiming = ({
 				if (traceHandle)
 					onHandle(({ name, onStop }) => {
 						onStop(({ elapsed }) => {
-							label += `handle.${name};dur=${elapsed}`
+							label += `handle.${name};dur=${elapsed},`
 						})
 					})
 
@@ -184,6 +184,7 @@ export const serverTiming = ({
 						if (allowed instanceof Promise) allowed = await allowed
 
 						if (traceTotal) label += `total;dur=${end - start}`
+						else label = label.slice(0, -1)
 
 						// ? Must wait until request is reported
 						switch (typeof allowed) {
