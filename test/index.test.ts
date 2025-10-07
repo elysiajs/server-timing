@@ -190,6 +190,83 @@ describe('Server Timing', () => {
         expect(timing).toBeNull()
     })
 
+    it('user-provided mapResponse handler works', async () => {
+        const encoder = new TextEncoder()
+        const app = new Elysia()
+            .use(
+                serverTiming({
+                    mapResponse: ({ responseValue, set }) => {
+                        const isJson = typeof responseValue === 'object'
+
+                        const text = isJson
+                            ? JSON.stringify(responseValue, null, 2)
+                            : responseValue?.toString() ?? ''
+
+                        set.headers['Content-Encoding'] = 'gzip'
+
+                        return new Response(
+                            Bun.gzipSync(encoder.encode(text)),
+                            {
+                                headers: {
+                                    'Content-Type': `${
+                                        isJson
+                                            ? 'application/json'
+                                            : 'text/plain'
+                                    }; charset=utf-8`
+                                }
+                            }
+                        )
+                    }
+                })
+            )
+            .get('/', () => 'text')
+            .get('/json', () => ({ foo: 'bar' }))
+
+        let res = await app.handle(req('/'))
+        const response = await res.text()
+        expect(response).toBe('text')
+        res = await app.handle(req('/json'))
+        const json = await res.json()
+        expect(json).toEqual({ foo: 'bar' })
+        const timing = res.headers.get('Server-Timing')
+        expect(timing).toContain('total;dur=')
+    })
+
+    it('directly registered mapResponse handler cannot work', async () => {
+        const encoder = new TextEncoder()
+        const app = new Elysia()
+            .mapResponse(({ responseValue, set }) => {
+                const isJson = typeof responseValue === 'object'
+
+                const text = isJson
+                    ? JSON.stringify(responseValue, null, 2)
+                    : responseValue?.toString() ?? ''
+
+                set.headers['Content-Encoding'] = 'gzip'
+
+                return new Response(Bun.gzipSync(encoder.encode(text)), {
+                    headers: {
+                        'Content-Type': `${
+                            isJson ? 'application/json' : 'text/plain'
+                        }; charset=utf-8`
+                    }
+                })
+            })
+            .use(serverTiming())
+            .get('/', () => 'text')
+            .get('/json', () => ({ foo: 'bar' }))
+
+        let res = await app.handle(req('/'))
+        const responseText = await res.text()
+        expect(responseText).not.toBe('text')
+        res = await app.handle(req('/json'))
+        expect(async () => {
+            await res.json()
+        }).toThrow();
+        const timing = res.headers.get('Server-Timing')
+        expect(timing).toContain('total;dur=')
+    })
+
     // it('handle early exit on beforeHandle with afterHandle', async () => {
     //     const delay = (time = 1000) => new Promise((r) => setTimeout(r, time))
 

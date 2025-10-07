@@ -1,5 +1,6 @@
 import {
 	Elysia,
+	type MapResponse,
 	type Context,
 	type TraceEvent,
 	type TraceProcess
@@ -85,6 +86,12 @@ export interface ServerTimingOptions {
 	allow?:
 		| MaybePromise<boolean>
 		| ((context: Omit<Context, 'path'>) => MaybePromise<boolean>)
+	/**
+	 * A custom mapResponse provided by user
+	 *
+	 * @default undefined
+	 */
+	mapResponse?: MapResponse
 }
 
 const getLabel = (
@@ -126,7 +133,8 @@ export const serverTiming = ({
 		error: traceError = true,
 		mapResponse: traceMapResponse = true,
 		total: traceTotal = true
-	} = {}
+	} = {},
+	mapResponse
 }: ServerTimingOptions = {}) => {
 	const app = new Elysia()
 
@@ -144,6 +152,7 @@ export const serverTiming = ({
 				onError,
 				set,
 				context,
+				response,
 				context: {
 					request: { method }
 				}
@@ -179,6 +188,13 @@ export const serverTiming = ({
 					})
 
 				onMapResponse(({ onStop }) => {
+					if (mapResponse) {
+						mapResponse({
+							...context,
+							response,
+							responseValue: response
+						})
+					}
 					onStop(async ({ end }) => {
 						let allowed = allow
 						if (allowed instanceof Promise) allowed = await allowed
