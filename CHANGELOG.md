@@ -1,3 +1,6 @@
+# 1.4.1 - 24 Apr 2026
+Chore:
+- Publish under @elysia scope
 
 # 1.3.0-exp.0 - 23 Apr 2025
 Change:

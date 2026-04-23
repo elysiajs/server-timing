@@ -1,9 +1,20 @@
-# @elysiajs/server-timing
-Plugin for [elysia](https://github.com/elysiajs/elysia) for performance audit via [server timing](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing)
+# @elysia/server-timing
+[Elysia](https://github.com/elysiajs/elysia) Elysia plugin to integrate [Server-Timing](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing)
 
 ## Installation
 ```bash
-bun add @elysiajs/server-timing
+bun add @elysia/server-timing
+```
+
+## Example
+```typescript twoslash
+import { Elysia } from 'elysia'
+import { serverTiming } from '@elysiajs/server-timing'
+
+new Elysia()
+    .use(serverTiming())
+    .get('/', () => 'hello')
+    .listen(3000)
 ```
 
 Please refers to the [documentation](https://elysiajs.com/plugins/server-timing) on how to use the package
