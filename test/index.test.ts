@@ -14,28 +14,24 @@ describe('Server Timing', () => {
     it('report event to Server-Timing', async () => {
         const app = new Elysia()
             .use(serverTiming())
-            .onRequest(async function init() {
+            .request(async function init() {
                 await delay(1)
             })
-            .get(
-                '/',
-                function demo() {
-                    return 'Server Timing'
-                },
-                {
-                    beforeHandle: [
-                        async function a() {
-                            await delay(1)
-                        },
-                        async function b() {
-                            await delay(1)
-                        }
-                    ],
-                    async afterHandle() {
+            .get('/', {
+                beforeHandle: [
+                    async function a() {
+                        await delay(1)
+                    },
+                    async function b() {
                         await delay(1)
                     }
+                ],
+                async afterHandle() {
+                    await delay(1)
                 }
-            )
+            }, function demo() {
+                return 'Server Timing'
+            })
 
         const res = await app.handle(req('/'))
         const timing = res.headers.get('Server-Timing')
@@ -110,28 +106,24 @@ describe('Server Timing', () => {
                     }
                 })
             )
-            .onRequest(async function init() {
+            .request(async function init() {
                 await delay(1)
             })
-            .get(
-                '/',
-                function demo() {
-                    return 'Server Timing'
-                },
-                {
-                    beforeHandle: [
-                        async function a() {
-                            await delay(1)
-                        },
-                        async function b() {
-                            await delay(1)
-                        }
-                    ],
-                    async afterHandle() {
+            .get('/', {
+                beforeHandle: [
+                    async function a() {
+                        await delay(1)
+                    },
+                    async function b() {
                         await delay(1)
                     }
+                ],
+                async afterHandle() {
+                    await delay(1)
                 }
-            )
+            }, function demo() {
+                return 'Server Timing'
+            })
 
         const res = await app.handle(req('/'))
         const timing = res.headers.get('Server-Timing')
@@ -160,28 +152,24 @@ describe('Server Timing', () => {
                     }
                 })
             )
-            .onRequest(async function init() {
+            .request(async function init() {
                 await delay(1)
             })
-            .get(
-                '/',
-                function demo() {
-                    return 'Server Timing'
-                },
-                {
-                    beforeHandle: [
-                        async function a() {
-                            await delay(1)
-                        },
-                        async function b() {
-                            await delay(1)
-                        }
-                    ],
-                    async afterHandle() {
+            .get('/', {
+                beforeHandle: [
+                    async function a() {
+                        await delay(1)
+                    },
+                    async function b() {
                         await delay(1)
                     }
+                ],
+                async afterHandle() {
+                    await delay(1)
                 }
-            )
+            }, function demo() {
+                return 'Server Timing'
+            })
             .get('/no-trace', () => 'hi')
 
         const res = await app.handle(req('/no-trace'))

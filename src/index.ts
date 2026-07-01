@@ -131,9 +131,7 @@ export const serverTiming = ({
 	const app = new Elysia()
 
 	if (enabled) {
-		app.trace(
-			{ as: 'global' },
-			async ({
+		app.trace('global', async ({
 				onRequest,
 				onParse,
 				onTransform,
@@ -209,8 +207,7 @@ export const serverTiming = ({
 						}
 					})
 				})
-			}
-		)
+			})
 	}
 
 	return app
