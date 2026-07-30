@@ -1,9 +1,5 @@
-import {
-	Elysia,
-	type Context,
-	type TraceEvent,
-	type TraceProcess
-} from 'elysia'
+import { Elysia, type Context } from 'elysia'
+import { trace, type TraceEvent, type TraceProcess } from 'elysia/trace'
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -130,8 +126,10 @@ export const serverTiming = ({
 }: ServerTimingOptions = {}) => {
 	const app = new Elysia()
 
-	if (enabled) {
-		app.trace('global', async ({
+	if (enabled)
+		app.use(trace()).trace(
+			'global',
+			async ({
 				onRequest,
 				onParse,
 				onTransform,
@@ -207,8 +205,8 @@ export const serverTiming = ({
 						}
 					})
 				})
-			})
-	}
+			}
+		)
 
 	return app
 }

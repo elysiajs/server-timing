@@ -1,6 +1,6 @@
 {
     "name": "@elysia/server-timing",
-    "version": "2.0.0-exp.0",
+    "version": "2.0.0-beta.1",
     "description": "Elysia plugin to integrate Server-Timing",
     "author": {
         "name": "saltyAom",
@@ -37,11 +37,11 @@
         "release": "npm run build && npm run test && npm publish --access public"
     },
     "peerDependencies": {
-        "elysia": ">= 2.0.0-exp.25"
+        "elysia": ">= 2.0.0-beta.1"
     },
     "devDependencies": {
         "@types/bun": "^1.3.14",
-        "elysia": "^2.0.0-exp.25",
+        "elysia": "2.0.0-beta.1",
         "eslint": "9.6.0",
         "tsdown": "^0.22.3",
         "typescript": "^6.0.3"
