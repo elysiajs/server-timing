@@ -37,11 +37,11 @@
         "release": "npm run build && npm run test && npm publish --access public"
     },
     "peerDependencies": {
-        "elysia": ">= 2.0.0-beta.1"
+        "elysia": ">= 2.0.0-beta.30"
     },
     "devDependencies": {
         "@types/bun": "^1.3.14",
-        "elysia": "2.0.0-beta.1",
+        "elysia": "2.0.0-beta.30",
         "eslint": "9.6.0",
         "tsdown": "^0.22.3",
         "typescript": "^6.0.3"

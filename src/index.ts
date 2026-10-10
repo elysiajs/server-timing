@@ -1,8 +1,6 @@
 import { Elysia, type Context } from 'elysia'
 import { trace, type TraceEvent, type TraceProcess } from 'elysia/trace'
 
-type MaybePromise<T> = T | Promise<T>
-
 export interface ServerTimingOptions {
 	/**
 	 * Should Elysia report data back to client via 'Server-Sent-Event'
@@ -76,11 +74,12 @@ export interface ServerTimingOptions {
 	/**
 	 * A condition whether server timing should be log
 	 *
+	 * Must be synchronous: trace `onStop` is not awaited, so a header set
+	 * after an `await` misses the response
+	 *
 	 * @default undefined
 	 */
-	allow?:
-		| MaybePromise<boolean>
-		| ((context: Omit<Context, 'path'>) => MaybePromise<boolean>)
+	allow?: boolean | ((context: Omit<Context, 'path'>) => boolean)
 }
 
 const getLabel = (
@@ -176,33 +175,17 @@ export const serverTiming = ({
 
 				onMapResponse(({ onStop }) => {
 					onStop(async ({ end }) => {
-						let allowed = allow
-						if (allowed instanceof Promise) allowed = await allowed
+						const allowed =
+							typeof allow === 'function'
+								? allow(context)
+								: (allow ?? true)
+
+						if (allowed !== true) return
 
 						if (traceTotal) label += `total;dur=${end - start}`
 						else label = label.slice(0, -1)
 
-						// ? Must wait until request is reported
-						switch (typeof allowed) {
-							case 'boolean':
-								if (allowed === false)
-									delete set.headers['Server-Timing']
-
-								set.headers['Server-Timing'] = label
-
-								break
-
-							case 'function':
-								if ((await allowed(context)) === false)
-									delete set.headers['Server-Timing']
-
-								set.headers['Server-Timing'] = label
-
-								break
-
-							default:
-								set.headers['Server-Timing'] = label
-						}
+						set.headers['Server-Timing'] = label
 					})
 				})
 			}

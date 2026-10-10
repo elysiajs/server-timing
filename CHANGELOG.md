@@ -1,3 +1,11 @@
+
+# 2.0.0-beta.1 - 30 Jul 2026
+Change:
+- Add support for Elysia 2.0
+
+Bug fix:
+- `allow: false` and function `allow` were ignored; `allow` is now synchronous only
+
 # 1.4.1 - 24 Apr 2026
 Chore:
 - Publish under @elysia scope

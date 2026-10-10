@@ -5,7 +5,7 @@ const delay = (time = 1000) => new Promise((r) => setTimeout(r, time))
 
 const app = new Elysia()
     .use(serverTiming())
-    .request(async function init() {
+    .onRequest(async function init() {
         await delay(1)
     })
     .get('/', {

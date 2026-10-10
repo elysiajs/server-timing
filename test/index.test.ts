@@ -14,7 +14,7 @@ describe('Server Timing', () => {
     it('report event to Server-Timing', async () => {
         const app = new Elysia()
             .use(serverTiming())
-            .request(async function init() {
+            .onRequest(async function init() {
                 await delay(1)
             })
             .get('/', {
@@ -106,7 +106,7 @@ describe('Server Timing', () => {
                     }
                 })
             )
-            .request(async function init() {
+            .onRequest(async function init() {
                 await delay(1)
             })
             .get('/', {
@@ -143,39 +143,62 @@ describe('Server Timing', () => {
         expect(timing).not.toContain('total;dur=')
     })
 
-    it('respect allow', async () => {
+    // regression: `delete` used to be followed by an unconditional set
+    it('omit header when allow is false', async () => {
+        const app = new Elysia()
+            .use(serverTiming({ allow: false }))
+            .get('/', () => 'hi')
+
+        const res = await app.handle(req('/'))
+
+        expect(res.headers.get('Server-Timing')).toBeNull()
+    })
+
+    it('emit header when allow is true', async () => {
+        const app = new Elysia()
+            .use(serverTiming({ allow: true }))
+            .get('/', function demo() {
+                return 'hi'
+            })
+
+        const res = await app.handle(req('/'))
+
+        expect(res.headers.get('Server-Timing')).toContain('handle.demo;dur=')
+    })
+
+    // both paths on one app: the header must depend on the fn's result,
+    // a fn form that never sets the header would pass a null-only check
+    it('respect allow function per request', async () => {
         const app = new Elysia()
             .use(
                 serverTiming({
-                    allow: async ({ request }) => {
-                        return new URL(request.url).pathname !== '/no-trace'
-                    }
+                    allow: ({ request }) =>
+                        new URL(request.url).pathname !== '/no-trace'
                 })
             )
-            .request(async function init() {
-                await delay(1)
-            })
-            .get('/', {
-                beforeHandle: [
-                    async function a() {
-                        await delay(1)
-                    },
-                    async function b() {
-                        await delay(1)
-                    }
-                ],
-                async afterHandle() {
-                    await delay(1)
-                }
-            }, function demo() {
-                return 'Server Timing'
+            .get('/', function demo() {
+                return 'hi'
             })
             .get('/no-trace', () => 'hi')
 
-        const res = await app.handle(req('/no-trace'))
-        const timing = res.headers.get('Server-Timing')
+        const traced = await app.handle(req('/'))
+        expect(traced.headers.get('Server-Timing')).toContain('handle.demo;dur=')
+        expect(traced.headers.get('Server-Timing')).toContain('total;dur=')
 
-        expect(timing).toBeNull()
+        const untraced = await app.handle(req('/no-trace'))
+        expect(untraced.headers.get('Server-Timing')).toBeNull()
+    })
+
+    // trace onStop is not awaited, so an async allow cannot be honored:
+    // it must fail closed (a truthy Promise must not leak timing)
+    it('omit header when allow returns a Promise', async () => {
+        const app = new Elysia()
+            .use(serverTiming({ allow: (async () => false) as any }))
+            .get('/', () => 'hi')
+
+        const res = await app.handle(req('/'))
+
+        expect(res.headers.get('Server-Timing')).toBeNull()
     })
 
     // it('handle early exit on beforeHandle with afterHandle', async () => {
